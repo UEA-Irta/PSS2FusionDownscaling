@@ -8,7 +8,7 @@ pip install git+https://github.com/UEA-Irta/PSS2FusionDownscaling.git
 ```
 ## Requirements
 
-This project requires the following libraries:
+Before installing, this project requires the following libraries:
 
 - `gdal, conda install -c conda-forge gdal`
 - `pyDMS, at https://github.com/radosuav/pyDMS.git`
