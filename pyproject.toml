@@ -96,6 +96,11 @@ dependencies = [
     "UAVBiphysicalModelling>=0.1.0"
 ]
 
+[project.optional-dependencies]
+gdal = [
+    "gdal>=3.0"
+]
+
 [tool.setuptools]
 package-dir = {"" = "."}
 
