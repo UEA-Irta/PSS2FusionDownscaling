@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import random
 
-import PSS2Fusion
+from PSS2Fusion import utils
 from pyDMS import pyDMSUtils
 from uav_biophysical_estimation import RFProcessor, NNProcessor
 
@@ -70,7 +70,7 @@ class TsHARPTemporalProcessor:
 
     def train(self):
 
-        matchingDates = PSS2Fusion.linkingDates(self.highResFolder, self.lowResFolder, days=365)
+        matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
 
         for row in matchingDates.index:
             highResDate = matchingDates['highres_closest_date'][row]
@@ -82,7 +82,7 @@ class TsHARPTemporalProcessor:
                 os.makedirs(model_path)
 
             highResPath = glob.glob(f'{self.highResFolder}/{highResDate}*.tif')[0]
-            PSS2Fusion.calculateVI(highResPath, self.indexVI, self.planetScopeSensor, save=True)
+            utils.calculateVI(highResPath, self.indexVI, self.planetScopeSensor, save=True)
 
             scene_LR = gdal.Open(glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0])
             scene_HR = gdal.Open(f'{self.indexVI}.tif')
@@ -97,7 +97,7 @@ class TsHARPTemporalProcessor:
                 'cvHomogeneityThreshold': self.cvHomogeneityThreshold,
             }
 
-            windows, extents, gDLR, gDHR, w, cv_thresholds = PSS2Fusion.processSceneTrain(scene_HR, scene_LR, params=imageTrain_params)
+            windows, extents, gDLR, gDHR, w, cv_thresholds = utils.processSceneTrain(scene_HR, scene_LR, params=imageTrain_params)
             self.windowExtents = extents
 
             for i in range(len(windows)):
@@ -172,7 +172,7 @@ class TsHARPTemporalProcessor:
         return
 
     def sharpening(self, residualCorrection=True):
-        matchingDates = PSS2Fusion.linkingDates(self.highResFolder, self.lowResFolder, days=365)
+        matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
         if not os.path.exists(self.outputsFolder):
             os.makedirs(self.outputsFolder)
 
@@ -196,9 +196,9 @@ class TsHARPTemporalProcessor:
                 outputFilename = f'{self.outputsFolder}/{highResDateIndividual}_{self.variableName}_output.tif'
                 highResPath = glob.glob(f'{self.highResFolder}/{highResDateIndividual}*.tif')[0]
 
-                PSS2Fusion.calculateVI(highResPath, self.indexVI, self.planetScopeSensor, save=True)
+                utils.calculateVI(highResPath, self.indexVI, self.planetScopeSensor, save=True)
 
-                outImage = PSS2Fusion.processSceneSharpen(f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}',f'{self.indexVI}.tif', params)
+                outImage = utils.processSceneSharpen(f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}',f'{self.indexVI}.tif', params)
 
                 if highResDateIndividual!=highResDate or residualCorrection is False:
                     outFile = pyDMSUtils.saveImg(outImage.GetRasterBand(1).ReadAsArray(),
@@ -207,7 +207,7 @@ class TsHARPTemporalProcessor:
                                         outputFilename)
 
                 else:
-                    residualImage, correctedImage = PSS2Fusion.processSceneResidual(outImage, lowResPath, params)
+                    residualImage, correctedImage = utils.processSceneResidual(outImage, lowResPath, params)
                     outFile = pyDMSUtils.saveImg(correctedImage.GetRasterBand(1).ReadAsArray(),
                                         correctedImage.GetGeoTransform(),
                                         correctedImage.GetProjection(),
@@ -279,7 +279,7 @@ class DMSTemporalProcessor:
 
     def train(self):
 
-        matchingDates = PSS2Fusion.linkingDates(self.highResFolder, self.lowResFolder, days=365)
+        matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
 
         for row in matchingDates.index:
             highResDate = matchingDates['highres_closest_date'][row]
@@ -303,7 +303,7 @@ class DMSTemporalProcessor:
                 'cvHomogeneityThreshold': self.cvHomogeneityThreshold,
             }
 
-            windows, extents, gDLR, gDHR, w, cv_thresholds = PSS2Fusion.processSceneTrain(scene_HR, scene_LR, params=imageTrainParams)
+            windows, extents, gDLR, gDHR, w, cv_thresholds = utils.processSceneTrain(scene_HR, scene_LR, params=imageTrainParams)
             self.windowExtents = extents
 
             for i in range(len(windows)):
@@ -433,7 +433,7 @@ class DMSTemporalProcessor:
         return
 
     def sharpening(self, residualCorrection=True):
-        matchingDates = PSS2Fusion.linkingDates(self.highResFolder, self.lowResFolder, days=365)
+        matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
         if not os.path.exists(self.outputsFolder):
             os.makedirs(self.outputsFolder)
 
@@ -457,7 +457,7 @@ class DMSTemporalProcessor:
                 outputFilename = f'{self.outputsFolder}/{highResDateIndividual}_{self.variableName}_output.tif'
                 highResPath = glob.glob(f'{self.highResFolder}/{highResDateIndividual}*.tif')[0]
 
-                outImage = PSS2Fusion.processSceneSharpen(f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}',highResPath, params)
+                outImage = utils.processSceneSharpen(f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}',highResPath, params)
 
                 if highResDateIndividual!=highResDate or residualCorrection is False:
                     outFile = pyDMSUtils.saveImg(outImage.GetRasterBand(1).ReadAsArray(),
@@ -466,7 +466,7 @@ class DMSTemporalProcessor:
                                         outputFilename)
 
                 else:
-                    residualImage, correctedImage = PSS2Fusion.processSceneResidual(outImage, lowResPath, params)
+                    residualImage, correctedImage = utils.processSceneResidual(outImage, lowResPath, params)
                     outFile = pyDMSUtils.saveImg(correctedImage.GetRasterBand(1).ReadAsArray(),
                                         correctedImage.GetGeoTransform(),
                                         correctedImage.GetProjection(),
