@@ -60,7 +60,6 @@ dependencies = [
     "pillow>=11.3.0",
     "ply>=3.11",
     "protobuf>=5.28.3",
-    "pyDMS>=1.0",
     "Pygments>=2.18.0",
     "pyparsing>=3.2.3",
     "pyproj>=3.7.2rc1",
