@@ -2,22 +2,10 @@
 
 This Python toolkit downscales Sentinel-2 biophysical products from 20 m → 3 m using PlanetScope shortwave reflectance to produce daily, high-resolution (3 m) maps. It supports two sharpening approaches: TsHARP (vegetation-index / fractional-cover based thermal sharpening; e.g., Agam et al., 2007; Kustas et al., 2003) and the Data-Mining Sharpener (DMS) methodology (Gao et al., 2012), with an implementation inspired by the community pyDMS project. The optional processing implementations — identical to those available in pyDMS — are also applied to the TsHARP approach, ensuring a consistent framework for both methods. Although the package focuses on downscaling biophysical products, the same methodology can be adapted to land-surface temperature (LST) and soil moisture (SM) data when suitable predictors are available.
 
-
-## Installation
-
-To use this project, ensure you have Python 3.x installed. Then, install the repository and the required dependencies.
-
-1. Install repository:
-   ```bash
-   pip install git+https://github.com/UEA-Irta/PSS2FusionDownscaling.git
-
-
-2. Install env:
-   ```bash
-   conda create -n PSS2Fusion -c conda-forge python=3.11
-   conda activate PSS2Fusion
-   pip install git+https://github.com/UEA-Irta/PSS2FusionDownscaling.git
-
+To install, ensure you are in the correct environment and type:
+```bash
+pip install git+https://github.com/UEA-Irta/PSS2FusionDownscaling.git
+```
 ## Requirements
 
 This project requires the following libraries:
