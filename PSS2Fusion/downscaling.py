@@ -47,6 +47,8 @@ class TsHARPTemporalProcessor:
         self.modelsFolder = os.path.join(os.path.dirname(self.highResFolder), "TsHARP/models")
 
         self.indexVI = TsHARPParams.get('index', 'MTVI2')
+        self.HR_scaler = None
+        self.LR_scaler = None
 
         if len(self.lowResMaskFolder) == 0 or len(self.lowResMaskFolder) == 1 and self.lowResMaskFolder[0] == "":
             self.useQuality_LR = False
@@ -187,7 +189,9 @@ class TsHARPTemporalProcessor:
                 'disaggregatingVariable': self.disaggregatingVariable,
                 'highResDate': highResDate,
                 'lowResDate': lowResDate,
-                'lowResGoodQualityFlags': self.lowResGoodQualityFlags
+                'lowResGoodQualityFlags': self.lowResGoodQualityFlags,
+                'Scaler':    {'HR_scaler': self.HR_scaler,
+                              'LR_scaler': self.LR_scaler}
             }
             lowResPath = glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0]
             lowResPathMask = glob.glob(f'{self.lowResMaskFolder}/{lowResDate}*.tif')[0]
