@@ -1,4 +1,4 @@
-def main(TsHARP=True, DMS=True):
+def main(MTVI2=True, TsHARP=True, DMS=True):
     # FUNCTIONS
     from PSS2Fusion import downscaling, params
     import time
@@ -20,14 +20,25 @@ def main(TsHARP=True, DMS=True):
     # TEMPORAL DOWNSCALING
     start_time = time.time()
 
+    if MTVI2:
+        print('Starting MTVI2 linear regression')
+        processorMTVI2 = downscaling.MTVI2TemporalProcessor(generalParams=generalParams,MTVI2Params=params.MTVI2Params)
+        print('Training process')
+        processorMTVI2.train()
+        print('Sharpening process')
+        processorMTVI2.sharpening(residualCorrection=True)
+        print('MTVI2 linear regression finished')
+
     if TsHARP:
         print('Starting TsHARP')
-        processorTsHARP = downscaling.TsHARPTemporalProcessor(generalParams=generalParams,TsHARPParams=params.TsHARPParams)
+        processorTsHARP = downscaling.TsHARPTemporalProcessor(generalParams=generalParams, TsHARPParams=params.TsHARPParams)
         print('Training process')
         processorTsHARP.train()
         print('Sharpening process')
         processorTsHARP.sharpening(residualCorrection=True)
         print('TsHARP finished')
+
+    print(time.time() - start_time, "seconds")
 
     if DMS:
         print('Starting DMS')
@@ -42,4 +53,4 @@ def main(TsHARP=True, DMS=True):
 
 
 if __name__ == '__main__':
-    main(TsHARP=True, DMS=True)
+    main(MTVI2=False, TsHARP=True, DMS=False)

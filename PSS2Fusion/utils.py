@@ -74,7 +74,7 @@ def linkingDates(highRes_folder, lowRes_folder, days=0):
 
 
 def calculateVI(file, VI, sensorID, save=False, save_format='tif'):
-    'PSB.SD'  # PS2, PS2.SD
+    # 'PSB.SD'  # PS2, PS2.SD
 
     def scalarBands(data, sensorID):
 
@@ -227,19 +227,6 @@ def calculateVI(file, VI, sensorID, save=False, save_format='tif'):
 
 
 def prediction(inData, reg, nn=None):
-    """
-    Private function. Calls the regression model.
-
-    Parameters
-    ----------
-    inData : ndarray
-        Input data array (2D or 3D).
-    nn : dict
-        Dictionary containing 'HR_scaler' and 'LR_scaler'.
-    reg : object
-        Regression model with a `predict` method.
-    """
-
     origShape = inData.shape
     if len(origShape) == 3:
         bands = origShape[2]
@@ -271,26 +258,6 @@ def prediction(inData, reg, nn=None):
 
 
 def processSceneTrain(scene_HR, scene_LR, params):
-    """
-    Process one high-res / low-res scene pair.
-
-    Inputs:
-      - scene_HR: gdal.Dataset for high-res (already opened)
-      - scene_LR: gdal.Dataset for low-res (already opened)
-      - params: dict with expected keys (defaults used if missing):
-          'useQuality_LR' (bool, default False)
-          'lowResGoodQualityFlags' (iterable of ints, default [])
-          'lowResQualityFile' (str path, optional)
-          'movingWindowSize' (int, default 0)
-          'movingWindowExtension' (int, default 0)
-          'minimumSampleNumber' (int, default 1)
-          'autoAdjustCvThreshold' (bool, default False)
-          'percentileThreshold' (float 0-100, default 50.0)
-          'cvHomogeneityThreshold' (float, default 0.0)
-
-    Returns:
-      windows, extents, goodData_LR, goodData_HR, weight, cv_thresholds
-    """
     # read params with defaults
     useQuality_LR = params.get('useQuality_LR', False)
     lowResGoodQualityFlags = np.array(params.get('lowResGoodQualityFlags', []))
@@ -429,30 +396,7 @@ import numpy as np
 from osgeo import gdal
 
 def processSceneSharpen(folder, highResFilename, params):
-    """
-    Sharpen a high-res scene using regressors and callables provided in params.
 
-    Parameters
-    ----------
-    highResFilename : str
-        Path to the high-resolution input image.
-    params : dict
-        MUST contain:
-          - 'windowExtents' : list of [ul, lr] extents (projection coords)
-          - 'reg'           : list of regressors (local windows, last = global)
-          - '_doPredict'    : callable(windowInData, reg) -> 2D prediction array
-          - '_calculateResidual': callable(outScene, lowResScene) -> (residual_LR, gt_LR)
-        Optional:
-          - 'disaggregatingTemperature' : bool (default False)
-          (other keys are ignored but may be passed for parity)
-    lowResFilename : str or None
-        Optional low-res image path used for fusion.
-
-    Returns
-    -------
-    outImage : gdal.Dataset
-        In-memory GDAL dataset ("MEM") with sharpened output (noData = np.nan).
-    """
     # Validate params
     if not isinstance(params, dict):
         raise ValueError("params must be a dict")
@@ -583,7 +527,7 @@ def processSceneResidual(disaggregatedFile, lowResFilename, params, lowResQualit
     else:
         quality_LR = None
 
-    residual_LR, gt_res = pyDMSUtils.calculateResidual(scene_HR, scene_LR, quality_LR, quality_flags, disagg_var)
+    residual_LR, gt_res = calculateResidual(scene_HR, scene_LR, quality_LR, quality_flags, disagg_var)
     residualImage = pyDMSUtils.saveImg(residual_LR,
                                   gt_res,
                                   scene_HR.GetProjection(),

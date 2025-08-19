@@ -18,10 +18,12 @@ Before installing, this project requires the following libraries:
 
 ## Main Scientific References
 
+- [Agam2007] Agam, N., Kustas, W. P., Anderson, M. C., Li, F., & Neale, C. M. U. (2007). A vegetation index based technique for spatial sharpening of thermal imagery. Remote Sensing of Environment, 107(4), 545–558. https://doi.org/10.1016/j.rse.2006.10.006
+- [Gao2012] Gao, F., Kustas, W. P., & Anderson, M. C. (2012). A data mining approach for sharpening thermal satellite imagery over land. Remote Sensing, 4(11), 3287–3319. https://doi.org/10.3390/rs4113287
+- [Guzinski2019] Guzinski, R., & Nieto, H. (2019). Evaluating the feasibility of using Sentinel-2 and Sentinel-3 satellites for high-resolution evapotranspiration estimations. Remote Sensing of Environment, 221, 157–172. https://doi.org/10.1016/j.rse.2018.11.019
+- [Guzinski2023] Guzinski, R., Nieto, H., Ramo Sánchez, R., Sánchez, J. M., Jomaa, I., Zitouna-Chebbi, R., Roupsard, O., & López-Urrea, R. (2023). Improving field-scale crop actual evapotranspiration monitoring with Sentinel-3, Sentinel-2, and Landsat data fusion. International Journal of Applied Earth Observation and Geoinformation, 125, 103587. https://doi.org/10.1016/j.jag.2023.103587
+- [Sadeh2021] Sadeh, Y., Zhu, X., Dunkerley, D., Walker, J. P., Zhang, Y., Rozenstein, O., Manivasagam, V. S., & Chenu, K. (2021). Fusion of Sentinel-2 and PlanetScope time-series data into daily 3 m surface reflectance and wheat LAI monitoring. International Journal of Applied Earth Observation and Geoinformation, 96, 102260. https://doi.org/10.1016/j.jag.2020.102260
 - [Minuesa2025]
-- [Agam2007] Agam N, Kustas WP, Anderson MC, Li F, Neale CMU (2007b) A vegetation index based technique for spatial sharpening of thermal imagery. Remote Sens Environ 107(4):545–558. https://doi.org/10.1016/j.rse.2006.10.006
-- [Gao2012] Gao, F., Kustas, W. P., & Anderson, M. C. (2012). A Data Mining Approach for Sharpening Thermal Satellite Imagery over Land. Remote Sensing, 4(11), 3287–3319. https://doi.org/10.3390/rs4113287
-- [Guzinski2019] Guzinski, R., & Nieto, H. (2019). Evaluating the feasibility of using Sentinel-2 and Sentinel-3 satellites for high-resolution evapotranspiration estimations. Remote Sensing of Environment, 221, 157–172. https://doi.org/10.1016/j.rse.2018.11.019- 
 
 ## Notes
 

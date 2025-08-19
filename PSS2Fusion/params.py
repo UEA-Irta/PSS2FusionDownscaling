@@ -1,8 +1,11 @@
 
-TsHARPParams = {
+MTVI2Params = {
     'index': 'MTVI2'
 }
 
+TsHARPParams = {
+    'NDVIForm': 'fcs' #linear, polynomial, fc, fcs
+}
 
 
 DMSParams = {
