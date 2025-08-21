@@ -1021,7 +1021,7 @@ class DMSTemporalProcessor:
                     os.chdir(final_folder)
 
                     NN_params = {
-                        'depth': int(self.depth[0]),
+                        'depth': int(self.depth),
                         'neurons': list(self.neurons) if hasattr(self.neurons, '__iter__') else [int(self.neurons)],
                         'activation': self.activationFunction,
                         'optimizer': self.trainingFunction,

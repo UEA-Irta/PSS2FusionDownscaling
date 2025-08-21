@@ -19,8 +19,8 @@ DMSParams = {
                             'BaggingMetrics':            {}
                             },
 
-    "nnParams":            {'depth':                     [1],
-                            'neurons':                  [85],
+    "nnParams":            {'depth':                       1,
+                            'neurons':                  (85),
                             'activationFunction':     'relu',
                             'trainingFunction':       'adam',
                             'epochs':                   100
