@@ -34,7 +34,7 @@ def linkingDates(highRes_folder, lowRes_folder, days=0):
                 min_diff = diff
                 closest_file = lowres_file
 
-        final_date_lowres = closest_file[-25:-17]
+        final_date_lowres = closest_file.split('/')[-1]
         if min_diff <= days:
             matched_highres.append(date_highres)
             matched_lowres.append(final_date_lowres)
