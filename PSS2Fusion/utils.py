@@ -486,7 +486,8 @@ def processSceneSharpen(folder, highResFilename, params):
     # If no windowed predictions and a global reg exists, predict full image
     if np.all(np.isnan(outFullData)) and (len(reg_list) > 0 and reg_list[-1] is not None):
         try:
-            outFullData = prediction(workData, reg_list[-1], scaler)
+            reg_global = f'{folder}/{reg_list[-1]}'
+            outFullData = prediction(workData, reg_global, scaler)
         except Exception as e:
             raise RuntimeError(f"_doPredict failed for full-image prediction: {e}")
 
