@@ -28,6 +28,7 @@ def main(MTVI2=True, TsHARP=True, DMS=True):
         print('Sharpening process')
         processorMTVI2.sharpening(residualCorrection=True)
         print('MTVI2 linear regression finished')
+        print(time.time() - start_time, "seconds")
 
     if TsHARP:
         print('Starting TsHARP')
@@ -37,8 +38,7 @@ def main(MTVI2=True, TsHARP=True, DMS=True):
         print('Sharpening process')
         processorTsHARP.sharpening(residualCorrection=True)
         print('TsHARP finished')
-
-    print(time.time() - start_time, "seconds")
+        print(time.time() - start_time, "seconds")
 
     if DMS:
         print('Starting DMS')
@@ -48,8 +48,7 @@ def main(MTVI2=True, TsHARP=True, DMS=True):
         print('Sharpening process')
         processorDMS.sharpening(residualCorrection=True)
         print('DMS finished')
-
-    print(time.time() - start_time, "seconds")
+        print(time.time() - start_time, "seconds")
 
 
 if __name__ == '__main__':
