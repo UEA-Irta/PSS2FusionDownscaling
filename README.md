@@ -51,12 +51,19 @@ This project requires the following libraries:
 - [Sadeh2021] Sadeh, Y., Zhu, X., Dunkerley, D., Walker, J. P., Zhang, Y., Rozenstein, O., Manivasagam, V. S., & Chenu, K. (2021). Fusion of Sentinel-2 and PlanetScope time-series data into daily 3 m surface reflectance and wheat LAI monitoring. International Journal of Applied Earth Observation and Geoinformation, 96, 102260. https://doi.org/10.1016/j.jag.2020.102260
 - [Minuesa2025] 
 
-## Notes
 
-- **Extensibility**: The pipeline is designed to support additional features or biophysical variables by updating the configuration file and adapting the utility scripts.
-- **Reproducibility**: Using the `config/` directory ensures consistency in parameter settings across different runs.
+## LICENCE
 
----
+PlanetScope / Sentinel-2 Biophysical Traits Downscaling
+
+Copyright 2025 César Minuesa.
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see http://www.gnu.org/licenses/
+
 
 ## Contact
 
