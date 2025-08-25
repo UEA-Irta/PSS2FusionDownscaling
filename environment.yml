@@ -1,0 +1,18 @@
+name: PSS2FusionDownscaling
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - pandas
+  - scikit-learn
+  - joblib
+  - rasterio
+  - gdal
+  - pip
+  - pip:
+    - tensorflow>=2.11
+    - keras>=2.11
+    - git+https://github.com/UEA-Irta/UAVBiophysicalModelling.git
+    - git+https://github.com/radosuav/pyDMS.git

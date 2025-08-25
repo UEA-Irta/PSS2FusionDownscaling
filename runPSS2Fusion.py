@@ -1,6 +1,6 @@
 def main(MTVI2=True, TsHARP=True, DMS=True):
     # FUNCTIONS
-    from PSS2Fusion import downscaling, params
+    from PSS2FusionDownscaling import downscaling, params
     import time
 
     # PARAMETERS

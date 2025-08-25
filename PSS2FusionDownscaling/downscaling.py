@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 import random
 
-from PSS2Fusion import utils
+from PSS2FusionDownscaling import utils
 from pyDMS import pyDMSUtils
 from uav_biophysical_estimation import RFProcessor, NNProcessor
 gdal.SetConfigOption('GTIFF_SRS_SOURCE', 'EPSG')
