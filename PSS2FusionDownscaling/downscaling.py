@@ -23,7 +23,7 @@ import random
 
 from PSS2FusionDownscaling import utils
 from pyDMS import pyDMSUtils
-from uav_biophysical_estimation import RFProcessor, NNProcessor
+from UAVBiophysicalDownscaling import RFProcessor, NNProcessor
 gdal.SetConfigOption('GTIFF_SRS_SOURCE', 'EPSG')
 
 class MTVI2TemporalProcessor:
