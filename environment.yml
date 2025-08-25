@@ -14,5 +14,5 @@ dependencies:
   - pip:
     - tensorflow>=2.11
     - keras>=2.11
-    - git+https://github.com/UEA-Irta/UAVBiophysicalModelling.git
-    - git+https://github.com/radosuav/pyDMS.git
+    - UAVBiophysicalModelling @ git+https://github.com/UEA-Irta/UAVBiophysicalModelling.git
+    - pyDMS @ git+https://github.com/radosuav/pyDMS.git
