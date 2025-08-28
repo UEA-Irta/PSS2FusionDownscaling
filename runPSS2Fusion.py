@@ -52,4 +52,4 @@ def main(MTVI2=True, TsHARP=True, DMS=True):
 
 
 if __name__ == '__main__':
-    main(MTVI2=False, TsHARP=True, DMS=False)
+    main(MTVI2=True, TsHARP=True, DMS=True)

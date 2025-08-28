@@ -986,9 +986,9 @@ class DMSTemporalProcessor:
 
                 if self.useDecisionTree is False:
                     self.HR_scaler = preprocessing.StandardScaler()
-                    HR = self.HR_scaler.fit_transform(Y)
+                    HR = self.HR_scaler.fit_transform(X)
                     self.LR_scaler = preprocessing.StandardScaler()
-                    LR = self.LR_scaler.fit_transform(X.reshape(-1, 1))
+                    LR = self.LR_scaler.fit_transform(Y.reshape(-1, 1))
 
                     folder_name = os.getcwd()
 
@@ -1037,8 +1037,10 @@ class DMSTemporalProcessor:
                     os.chdir(folder_name)
 
                 else:
-                    self.HR_scaler = None
-                    self.LR_scaler = None
+                    self.HR_scaler = preprocessing.StandardScaler()
+                    HR = self.HR_scaler.fit_transform(X)
+                    self.LR_scaler = preprocessing.StandardScaler()
+                    LR = self.LR_scaler.fit_transform(Y.reshape(-1, 1))
                     local = True if len(windows) > 1 else False
 
                     if local:
@@ -1052,13 +1054,13 @@ class DMSTemporalProcessor:
                     baseRegressor = tree.DecisionTreeRegressor(**self.DTMetrics)
                     reg = ensemble.BaggingRegressor(baseRegressor, **self.BaggingMetrics)
 
-                    if X.shape[0] <= 1:
+                    if HR.shape[0] <= 1:
                         reg.max_samples = 1.0
 
                     if sample_w is not None:
-                        reg = reg.fit(Y, X, sample_weight=sample_w)
+                        reg = reg.fit(HR, LR, sample_weight=sample_w)
                     else:
-                        reg = reg.fit(Y, X)
+                        reg = reg.fit(HR, LR)
 
                     dump(reg, f"{model_path}/DTBagging_model_win{i}.joblib")
 
