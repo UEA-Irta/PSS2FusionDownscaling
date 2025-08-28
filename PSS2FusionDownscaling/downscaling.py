@@ -185,8 +185,8 @@ class MTVI2TemporalProcessor:
             for i in range(len(windows)):
                 local = (i < len(windows) - 1)
 
-                X = gDLR[i]
-                Y = gDHR[i]
+                Y = gDLR[i]
+                X = gDHR[i]
                 sample_w = w[i]
 
                 # skip empty windows
@@ -547,8 +547,8 @@ class TsHARPTemporalProcessor:
             for i in range(len(windows)):
                 local = (i < len(windows) - 1)
 
-                X = gDLR[i]
-                Y = gDHR[i]
+                Y = gDLR[i]
+                X = gDHR[i]
                 sample_w = w[i]
 
                 # skip empty windows
@@ -941,8 +941,8 @@ class DMSTemporalProcessor:
             for i in range(len(windows)):
                 local = (i < len(windows) - 1)
 
-                X = gDLR[i]
-                Y = gDHR[i]
+                Y = gDLR[i]
+                X = gDHR[i]
                 sample_w = w[i]
 
                 # skip empty windows
