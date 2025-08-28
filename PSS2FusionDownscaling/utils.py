@@ -250,6 +250,9 @@ def prediction(inData, reg, nn=None):
 
     # Inverse transform and reshape to original shape
     if LR_scaler is not None:
+        if reg.endswith('joblib'):
+            outData = outData.reshape(-1, 1)
+
         outData = LR_scaler.inverse_transform(outData)
 
     outData = outData.reshape((origShape[0], origShape[1]))
