@@ -4,12 +4,12 @@ def main(MTVI2=True, TsHARP=True, DMS=True):
     import time
 
     # PARAMETERS
-    general_path = ''
+    general_path = '/media/hdd5/Tesis_CesarMinuesa/Processing/prova/FAPAR/raimat/'
     generalParams = {
         'variableName':                    'FAPAR',
-        'highResFolder':        f'{general_path}/',
-        'lowResFolder':         f'{general_path}/',
-        'lowResMaskFolder':     f'{general_path}/',
+        'highResFolder':        f'{general_path}/ps',
+        'lowResFolder':         f'{general_path}/s2',
+        'lowResMaskFolder':     f'{general_path}/mask',
         'lowResGoodQualityFlags':                0,
         'cvHomogeneityThreshold':                0,
         'movingWindowSize':                      0,
@@ -52,4 +52,4 @@ def main(MTVI2=True, TsHARP=True, DMS=True):
 
 
 if __name__ == '__main__':
-    main(MTVI2=True, TsHARP=True, DMS=True)
+    main(MTVI2=False, TsHARP=False, DMS=True)

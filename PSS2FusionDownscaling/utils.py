@@ -240,19 +240,10 @@ def prediction(inData, reg, nn=None):
         if HR_scaler is not None:
             inData = HR_scaler.transform(inData)
 
-    if reg.endswith('joblib'):
-        reg_model = joblib.load(reg)
-    else:
-        reg_model = keras.models.load_model(reg)
+    outData = reg.predict(inData)
 
-
-    outData = reg_model.predict(inData)
-
-    # Inverse transform and reshape to original shape
     if LR_scaler is not None:
-        if reg.endswith('joblib'):
-            outData = outData.reshape(-1, 1)
-
+        outData = outData.reshape(-1, 1)
         outData = LR_scaler.inverse_transform(outData)
 
     outData = outData.reshape((origShape[0], origShape[1]))
@@ -398,24 +389,26 @@ def processSceneTrain(scene_HR, scene_LR, params):
 import numpy as np
 from osgeo import gdal
 
-def processSceneSharpen(folder, highResFilename, params):
+def processSceneSharpen(highResFilename, params):
 
     # Validate params
     if not isinstance(params, dict):
         raise ValueError("params must be a dict")
 
     # Required keys
-    required = ['windowExtents', '_calculateResidual']
+    required = ['windowExtents', '_calculateResidual', 'regs']
     for k in required:
         if k not in params:
             raise KeyError(f"params must include '{k}'")
 
     windowExtents = params['windowExtents']
+    regs = params['regs']
     # lowResDate = params['lowResDate']
     # highResDate = params['highResDate']
     residual_fn = params['_calculateResidual']
     disagg_temp = bool(params.get('disaggregatingVariable', False))
-    scaler = params['Scaler']
+    LRscaler = params['LR_Scaler']
+    HRScaler = params['HR_Scaler']
 
     # Open high-res file
     highResFile = gdal.Open(highResFilename)
@@ -449,47 +442,59 @@ def processSceneSharpen(folder, highResFilename, params):
     outWindowData = np.full((ysize, xsize), np.nan, dtype=float)
     outFullData = np.full((ysize, xsize), np.nan, dtype=float)
 
-    reg_list = [f for f in os.listdir(folder) if "win" in f.lower() and os.path.isfile(os.path.join(folder, f))]
-
     # Iterate windows
-    for i, extent in enumerate(windowExtents):
-        print(f"process_scene_sharpen: window {i}/{len(windowExtents)-1}")
-        reg_local = f'{folder}/{reg_list[i]}' if i+1 < len(reg_list) else None
-        reg_global = f'{folder}/{reg_list[-1]}' if len(reg_list) > 0 else None
+    if len(regs) > 1:
+        for i, extent in enumerate(windowExtents):
+            print(f"process_scene_sharpen: window {i}/{len(windowExtents)-1}")
+            reg_local = regs[i] if i+1 < len(regs) else None
+            reg_local = regs[i]
 
-        if reg_local is None and reg_global is None:
-            continue
+            reg_global = None
 
-        # extent -> pixel coordinates, clipped
-        minX, minY = pyDMSUtils.point2pix(extent[0], gt)  # UL
-        maxX, maxY = pyDMSUtils.point2pix(extent[1], gt)  # LR
-        minX = max(int(minX), 0)
-        minY = max(int(minY), 0)
-        maxX = min(int(maxX), xsize)
-        maxY = min(int(maxY), ysize)
-        if maxX <= minX or maxY <= minY:
-            continue
+            scaler = {
+                "HR_scaler": HRScaler[i],
+                "LR_scaler": LRscaler[i]
+            }
 
-        windowInData = workData[minY:maxY, minX:maxX, :]
+            if reg_local is None and reg_global is None:
+                continue
 
-        if reg_local is not None:
-            try:
-                pred_local = prediction(windowInData, reg_local, scaler)
-            except Exception as e:
-                raise RuntimeError(f"_doPredict (local) failed for window {i}: {e}")
-            outWindowData[minY:maxY, minX:maxX] = pred_local
+            # extent -> pixel coordinates, clipped
+            minX, minY = pyDMSUtils.point2pix(extent[0], gt)  # UL
+            maxX, maxY = pyDMSUtils.point2pix(extent[1], gt)  # LR
+            minX = max(int(minX), 0)
+            minY = max(int(minY), 0)
+            maxX = min(int(maxX), xsize)
+            maxY = min(int(maxY), ysize)
+            if maxX <= minX or maxY <= minY:
+                continue
 
-        if reg_global is not None:
-            try:
-                pred_global = prediction(windowInData, reg_global, scaler)
-            except Exception as e:
-                raise RuntimeError(f"_doPredict (global) failed for window {i}: {e}")
-            outFullData[minY:maxY, minX:maxX] = pred_global
+            windowInData = workData[minY:maxY, minX:maxX, :]
+
+            if reg_local is not None:
+                try:
+                    pred_local = prediction(windowInData, reg_local, scaler)
+                except Exception as e:
+                    raise RuntimeError(f"_doPredict (local) failed for window {i}: {e}")
+                outWindowData[minY:maxY, minX:maxX] = pred_local
+
+            # if reg_global is not None:
+            #     try:
+            #         pred_global = prediction(windowInData, reg_global, scaler[i])
+            #     except Exception as e:
+            #         raise RuntimeError(f"_doPredict (global) failed for window {i}: {e}")
+            #     outFullData[minY:maxY, minX:maxX] = pred_global
 
     # If no windowed predictions and a global reg exists, predict full image
-    if np.all(np.isnan(outFullData)) and (len(reg_list) > 0 and reg_list[-1] is not None):
+    # if np.all(np.isnan(outFullData)) and (len(regs) > 0 and regs[-1] is not None):
+    else:
         try:
-            reg_global = f'{folder}/{reg_list[-1]}'
+            scaler = {
+                "HR_scaler": HRScaler[0],
+                "LR_scaler": LRscaler[0]
+            }
+
+            reg_global = regs[0]
             outFullData = prediction(workData, reg_global, scaler)
         except Exception as e:
             raise RuntimeError(f"_doPredict failed for full-image prediction: {e}")

@@ -1,5 +1,6 @@
 import glob
 import os.path
+import shutil
 
 from osgeo import gdal
 
@@ -22,7 +23,7 @@ import pandas as pd
 import random
 
 from PSS2FusionDownscaling import utils
-from pyDMS import pyDMSUtils
+from pyDMS import pyDMSUtils, pyDMS
 from UAVBiophysicalModelling import RFProcessor, NNProcessor
 
 gdal.SetConfigOption('GTIFF_SRS_SOURCE', 'EPSG')
@@ -121,8 +122,9 @@ class MTVI2TemporalProcessor:
         self.disaggregatingVariable = generalParams.get('disaggregatingVariable', True)
         self.planetScopeSensor = generalParams.get('planetScopeSensor', 'PSB.SD')
         self.indexVI = MTVI2Params.get('index', 'MTVI2')
-        self.outputsFolder = os.path.join(os.path.dirname(self.highResFolder), f"{self.indexVI}/outputs")
-        self.modelsFolder = os.path.join(os.path.dirname(self.highResFolder), f"{self.indexVI}/models")
+        self.outputsFolder = os.path.join(os.path.dirname(self.highResFolder), f"{self.indexVI}")
+        if not os.path.exists(self.outputsFolder):
+            os.makedirs(self.outputsFolder)
 
         self.HR_scaler = None
         self.LR_scaler = None
@@ -145,24 +147,20 @@ class MTVI2TemporalProcessor:
 
         self.movingWindowSize = float(self.movingWindowSize)
         self.movingWindowExtension = self.movingWindowSize * 0.25
-        self.windowExtents = []
+        self.windowExtents = {}
+        self.reg = {}
 
     def train(self):
 
         matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
 
-        for row in matchingDates.index:
-            highResDate = matchingDates['highres_closest_date'][row]
-            lowResDate = matchingDates['lowres_closest_date'][row]
-
-            model_path = f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}'
-
-            if not os.path.exists(model_path):
-                os.makedirs(model_path)
+        for n in matchingDates.index:
+            highResDate = matchingDates['highres_closest_date'][n]
+            lowResDate = matchingDates['lowres_closest_date'][n]
 
             highResPath = glob.glob(f'{self.highResFolder}/{highResDate}*.tif')[0]
             original_path = os.getcwd()
-            os.chdir(model_path)
+            os.chdir(self.outputsFolder)
             utils.calculateVI(highResPath, self.indexVI, self.planetScopeSensor, save=True)
 
             scene_LR = gdal.Open(glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0])
@@ -180,7 +178,9 @@ class MTVI2TemporalProcessor:
             }
 
             windows, extents, gDLR, gDHR, w, cv_thresholds = utils.processSceneTrain(scene_HR, scene_LR, params=imageTrain_params)
-            self.windowExtents = extents
+
+            regs = []
+            extents_list = []
 
             for i in range(len(windows)):
                 local = (i < len(windows) - 1)
@@ -228,11 +228,11 @@ class MTVI2TemporalProcessor:
                         else:
                             sample_w_used[sample_w_used < 0] = 0.0
 
-                lr = LinearRegression()
+                reg = LinearRegression()
                 if sample_w_used is not None:
-                    lr.fit(X, Y, sample_weight=sample_w_used)
+                    reg.fit(X, Y, sample_weight=sample_w_used)
                 else:
-                    lr.fit(X, Y)
+                    reg.fit(X, Y)
 
                 # model_info = {
                 #     'model': lr,
@@ -246,12 +246,14 @@ class MTVI2TemporalProcessor:
                 #     'lowres_date': lowResDate
                 # }
 
-                fname = f"linear_model_win{i}.joblib"
-                save_path = os.path.join(model_path, fname)
-                joblib.dump(lr, save_path)
-
                 scene_HR = None
-                os.remove((f'{model_path}/{self.indexVI}.tif'))
+
+                regs.append(reg)
+                extents_list.append(extents[i])
+
+            os.remove((f'{self.outputsFolder}/{self.indexVI}.tif'))
+            self.reg[n] = regs
+            self.windowExtents[n] = extents_list
 
 
 
@@ -260,21 +262,21 @@ class MTVI2TemporalProcessor:
         if not os.path.exists(self.outputsFolder):
             os.makedirs(self.outputsFolder)
 
-        for row in matchingDates.index:
-            highResDate = matchingDates['highres_closest_date'][row]
-            highResDates = matchingDates['highres_dates'][row].split(", ")
-            lowResDate = matchingDates['lowres_closest_date'][row]
+        for n in matchingDates.index:
+            highResDate = matchingDates['highres_closest_date'][n]
+            highResDates = matchingDates['highres_dates'][n].split(", ")
+            lowResDate = matchingDates['lowres_closest_date'][n]
 
             params = {
-                'windowExtents': self.windowExtents,
+                'regs': self.reg[n],
+                'windowExtents': self.windowExtents[n],
                 '_calculateResidual': residualCorrection,
                 'disaggregatingVariable': self.disaggregatingVariable,
-                'highResDate': highResDate,
-                'lowResDate': lowResDate,
                 'lowResGoodQualityFlags': self.lowResGoodQualityFlags,
-                'Scaler':    {'HR_scaler': self.HR_scaler,
-                              'LR_scaler': self.LR_scaler}
+                'HR_Scaler': [None] * len(self.windowExtents[n]),
+                'LR_Scaler': [None] * len(self.windowExtents[n])
             }
+
             lowResPath = glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0]
             lowResPathMask = glob.glob(f'{self.lowResMaskFolder}/{lowResDate}*.tif')[0]
 
@@ -286,7 +288,7 @@ class MTVI2TemporalProcessor:
                 os.chdir(self.outputsFolder)
                 utils.calculateVI(highResPath, self.indexVI, self.planetScopeSensor, save=True)
 
-                outImage = utils.processSceneSharpen(f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}',f'{self.indexVI}.tif', params)
+                outImage = utils.processSceneSharpen(f'{self.indexVI}.tif', params)
 
                 if highResDateIndividual!=highResDate or residualCorrection is False:
                     outFile = pyDMSUtils.saveImg(outImage.GetRasterBand(1).ReadAsArray(),
@@ -435,8 +437,9 @@ class TsHARPTemporalProcessor:
         self.movingWindowSize = generalParams.get('movingWindowSize', 0)
         self.disaggregatingVariable = generalParams.get('disaggregatingVariable', True)
         self.planetScopeSensor = generalParams.get('planetScopeSensor', 'PSB.SD')
-        self.outputsFolder = os.path.join(os.path.dirname(self.highResFolder), "TsHARP/outputs")
-        self.modelsFolder = os.path.join(os.path.dirname(self.highResFolder), "TsHARP/models")
+        self.outputsFolder = os.path.join(os.path.dirname(self.highResFolder), "TsHARP")
+        if not os.path.exists(self.outputsFolder):
+            os.makedirs(self.outputsFolder)
 
         self.approach = TsHARPParams.get('NDVIForm', 'fcs')
         self.HR_scaler = None
@@ -464,23 +467,20 @@ class TsHARPTemporalProcessor:
 
         self.movingWindowSize = float(self.movingWindowSize)
         self.movingWindowExtension = self.movingWindowSize * 0.25
-        self.windowExtents = []
+        self.windowExtents = {}
+        self.reg = {}
+
 
     def train(self):
         matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
 
-        for row in matchingDates.index:
-            highResDate = matchingDates['highres_closest_date'][row]
-            lowResDate = matchingDates['lowres_closest_date'][row]
-
-            model_path = f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}'
-
-            if not os.path.exists(model_path):
-                os.makedirs(model_path)
+        for n in matchingDates.index:
+            highResDate = matchingDates['highres_closest_date'][n]
+            lowResDate = matchingDates['lowres_closest_date'][n]
 
             highResPath = glob.glob(f'{self.highResFolder}/{highResDate}*.tif')[0]
             original_path = os.getcwd()
-            os.chdir(model_path)
+            os.chdir(self.outputsFolder)
             utils.calculateVI(highResPath, 'NDVI', self.planetScopeSensor, save=True)
 
             scene_LR = gdal.Open(glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0])
@@ -542,7 +542,9 @@ class TsHARPTemporalProcessor:
             }
 
             windows, extents, gDLR, gDHR, w, cv_thresholds = utils.processSceneTrain(scene_HR, scene_LR, params=imageTrain_params)
-            self.windowExtents = extents
+
+            regs = []
+            extents_list = []
 
             for i in range(len(windows)):
                 local = (i < len(windows) - 1)
@@ -592,19 +594,19 @@ class TsHARPTemporalProcessor:
 
                 if self.approach == 'polynomial':
                     degree = 2
-                    model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+                    reg = make_pipeline(PolynomialFeatures(degree), LinearRegression())
 
                     if sample_w_used is not None:
-                        model.fit(X, Y, linearregression__sample_weight=sample_w_used)
+                        reg.fit(X, Y, linearregression__sample_weight=sample_w_used)
                     else:
-                        model.fit(X, Y)
+                        reg.fit(X, Y)
 
                 else:
-                    model = LinearRegression()
+                    reg = LinearRegression()
                     if sample_w_used is not None:
-                        model.fit(X, Y, sample_weight=sample_w_used)
+                        reg.fit(X, Y, sample_weight=sample_w_used)
                     else:
-                        model.fit(X, Y)
+                        reg.fit(X, Y)
 
                 # model_info = {
                 #     'model': lr,
@@ -618,14 +620,16 @@ class TsHARPTemporalProcessor:
                 #     'lowres_date': lowResDate
                 # }
 
-                fname = f"linear_model_win{i}.joblib"
-                save_path = os.path.join(model_path, fname)
-                joblib.dump(model, save_path)
-
                 scene_HR = None
-                os.remove((f'{model_path}/NDVI.tif'))
-                if self.approach == 'fc' or self.approach == 'fcs':
-                    os.remove(f'{model_path}/NDVI_processed.tif')
+
+                regs.append(reg)
+                extents_list.append(extents[i])
+
+            self.reg[n] = regs
+            self.windowExtents[n] = extents_list
+            os.remove((f'{self.outputsFolder}/NDVI.tif'))
+            if self.approach == 'fc' or self.approach == 'fcs':
+                os.remove(f'{self.outputsFolder}/NDVI_processed.tif')
 
 
     def sharpening(self, residualCorrection=True):
@@ -633,21 +637,21 @@ class TsHARPTemporalProcessor:
         if not os.path.exists(self.outputsFolder):
             os.makedirs(self.outputsFolder)
 
-        for row in matchingDates.index:
-            highResDate = matchingDates['highres_closest_date'][row]
-            highResDates = matchingDates['highres_dates'][row].split(", ")
-            lowResDate = matchingDates['lowres_closest_date'][row]
+        for n in matchingDates.index:
+            highResDate = matchingDates['highres_closest_date'][n]
+            highResDates = matchingDates['highres_dates'][n].split(", ")
+            lowResDate = matchingDates['lowres_closest_date'][n]
 
             params = {
-                'windowExtents': self.windowExtents,
+                'regs': self.reg[n],
+                'windowExtents': self.windowExtents[n],
                 '_calculateResidual': residualCorrection,
                 'disaggregatingVariable': self.disaggregatingVariable,
-                'highResDate': highResDate,
-                'lowResDate': lowResDate,
                 'lowResGoodQualityFlags': self.lowResGoodQualityFlags,
-                'Scaler':    {'HR_scaler': self.HR_scaler,
-                              'LR_scaler': self.LR_scaler}
+                'HR_Scaler': [None] * len(self.windowExtents[n]),
+                'LR_Scaler': [None] * len(self.windowExtents[n])
             }
+
             lowResPath = glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0]
             lowResPathMask = glob.glob(f'{self.lowResMaskFolder}/{lowResDate}*.tif')[0]
 
@@ -657,7 +661,6 @@ class TsHARPTemporalProcessor:
 
                 original_path = os.getcwd()
                 os.chdir(self.outputsFolder)
-                indexName = 'NDVI'
                 utils.calculateVI(highResPath, 'NDVI', self.planetScopeSensor, save=True)
 
                 if self.approach == 'fc' or self.approach == 'fcs':
@@ -702,7 +705,7 @@ class TsHARPTemporalProcessor:
                     out_ds = None
                     scene_HR = None
 
-                outImage = utils.processSceneSharpen(f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}',f'{indexName}.tif', params)
+                outImage = utils.processSceneSharpen('NDVI_processed.tif', params)
 
                 if highResDateIndividual!=highResDate or residualCorrection is False:
                     outFile = pyDMSUtils.saveImg(outImage.GetRasterBand(1).ReadAsArray(),
@@ -865,10 +868,11 @@ class DMSTemporalProcessor:
         self.movingWindowSize = generalParams.get('movingWindowSize', 0)
         self.disaggregatingVariable = generalParams.get('disaggregatingVariable', True)
         self.planetScopeSensor = generalParams.get('planetScopeSensor', 'PSB.SD')
-        self.modelsFolder = os.path.join(os.path.dirname(self.highResFolder), "DMS/models")
-        self.outputsFolder = os.path.join(os.path.dirname(self.highResFolder), "DMS/outputs")
 
         self.useDecisionTree = DMSParams.get('useDecisionTree', False)
+        self.outputsFolder = os.path.join(os.path.dirname(self.highResFolder), "DMSann") if self.useDecisionTree==False else os.path.join(os.path.dirname(self.highResFolder), "DMSdt")
+        if not os.path.exists(self.outputsFolder):
+            os.makedirs(self.outputsFolder)
         self.algorithm = 'ANN' if self.useDecisionTree==False else 'DT'
         self.trainingSize = DMSParams.get('trainingSize', 0.8)
         self.testSize = DMSParams.get('testSize', 0.1)
@@ -883,6 +887,7 @@ class DMSTemporalProcessor:
 
         self.minimumSampleNumber = self.regressorDT.get('minimumSampleNumber', 10)
         self.perLeafLinearRegression = self.regressorDT.get('perLeafLinearRegression', True)
+        self.linearRegressionExtrapolationRatio = self.regressorDT.get('linearRegressionExtrapolationRatio', 0.25)
         self.DTMetrics = self.regressorDT.get('DTMetrics')
         self.BaggingMetrics = self.regressorDT.get('BaggingMetrics')
 
@@ -907,20 +912,18 @@ class DMSTemporalProcessor:
 
         self.movingWindowSize = float(self.movingWindowSize)
         self.movingWindowExtension = self.movingWindowSize * 0.25
-        self.windowExtents = []
+        self.windowExtents = {}
+        self.reg = {}
+        self.HR_scaler = {}
+        self.LR_scaler = {}
 
     def train(self):
 
         matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
 
-        for row in matchingDates.index:
-            highResDate = matchingDates['highres_closest_date'][row]
-            lowResDate = matchingDates['lowres_closest_date'][row]
-
-            model_path = f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}'
-
-            if not os.path.exists(model_path):
-                os.makedirs(model_path)
+        for n in matchingDates.index:
+            highResDate = matchingDates['highres_closest_date'][n]
+            lowResDate = matchingDates['lowres_closest_date'][n]
 
             scene_LR = gdal.Open(glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0])
             scene_HR = gdal.Open(glob.glob(f'{self.highResFolder}/{highResDate}*.tif')[0])
@@ -936,7 +939,11 @@ class DMSTemporalProcessor:
             }
 
             windows, extents, gDLR, gDHR, w, cv_thresholds = utils.processSceneTrain(scene_HR, scene_LR, params=imageTrainParams)
-            self.windowExtents = extents
+
+            regs = []
+            HR_scalers = []
+            LR_scalers = []
+            extents_list = []
 
             for i in range(len(windows)):
                 local = (i < len(windows) - 1)
@@ -985,10 +992,10 @@ class DMSTemporalProcessor:
                             sample_w_used[sample_w_used < 0] = 0.0
 
                 if self.useDecisionTree is False:
-                    self.HR_scaler = preprocessing.StandardScaler()
-                    HR = self.HR_scaler.fit_transform(X)
-                    self.LR_scaler = preprocessing.StandardScaler()
-                    LR = self.LR_scaler.fit_transform(Y.reshape(-1, 1))
+                    HR_scaler = preprocessing.StandardScaler()
+                    HR = HR_scaler.fit_transform(X)
+                    LR_scaler = preprocessing.StandardScaler()
+                    LR = LR_scaler.fit_transform(Y.reshape(-1, 1)).ravel()
 
                     folder_name = os.getcwd()
 
@@ -1016,10 +1023,7 @@ class DMSTemporalProcessor:
                     processorRF.test(X_test=X_test, y_test=y_test, model=modelRF)
                     os.chdir(folder_name)
 
-                    final_folder = os.path.join(model_path, 'metrics')
-                    if not os.path.exists(final_folder):
-                        os.makedirs(final_folder)
-                    os.chdir(final_folder)
+                    os.chdir(self.outputsFolder)
 
                     NN_params = {
                         'depth': int(self.depth),
@@ -1030,17 +1034,18 @@ class DMSTemporalProcessor:
                     }
 
                     processorNN = NNProcessor(f'TrialNN', NN_params, predict_config=None)
-                    modelNN = processorNN.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, print=True)
-                    processorNN.test(X_test=X_test, y_test=y_test, model=modelNN)
+                    reg = processorNN.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, print=True)
+                    processorNN.test(X_test=X_test, y_test=y_test, model=reg)
 
-                    modelNN.save(rf"{model_path}/ANN_model_win{i}.keras")
+                    shutil.rmtree(f'{self.outputsFolder}/TrialNN')
+
                     os.chdir(folder_name)
 
                 else:
-                    self.HR_scaler = preprocessing.StandardScaler()
-                    HR = self.HR_scaler.fit_transform(X)
-                    self.LR_scaler = preprocessing.StandardScaler()
-                    LR = self.LR_scaler.fit_transform(Y.reshape(-1, 1))
+                    HR_scaler = preprocessing.StandardScaler()
+                    HR = HR_scaler.fit_transform(X)
+                    LR_scaler = preprocessing.StandardScaler()
+                    LR = LR_scaler.fit_transform(Y.reshape(-1, 1)).ravel()
                     local = True if len(windows) > 1 else False
 
                     if local:
@@ -1050,8 +1055,11 @@ class DMSTemporalProcessor:
 
                     self.DTMetrics['min_samples_leaf'] = min(self.minimumSampleNumber, 10)
 
+                    if self.perLeafLinearRegression:
+                        baseRegressor = pyDMS.DecisionTreeRegressorWithLinearLeafRegression(self.linearRegressionExtrapolationRatio, self.DTMetrics)
+                    else:
+                        baseRegressor = tree.DecisionTreeRegressor(**self.DTMetrics)
 
-                    baseRegressor = tree.DecisionTreeRegressor(**self.DTMetrics)
                     reg = ensemble.BaggingRegressor(baseRegressor, **self.BaggingMetrics)
 
                     if HR.shape[0] <= 1:
@@ -1062,27 +1070,37 @@ class DMSTemporalProcessor:
                     else:
                         reg = reg.fit(HR, LR)
 
-                    dump(reg, f"{model_path}/DTBagging_model_win{i}.joblib")
 
-        return
+                regs.append(reg)
+                HR_scalers.append(HR_scaler)
+                LR_scalers.append(LR_scaler)
+                extents_list.append(extents[i])
+
+            self.reg[n] = regs
+            self.HR_scaler[n] = HR_scalers
+            self.LR_scaler[n] = LR_scalers
+            self.windowExtents[n] = extents_list
+
+
 
     def sharpening(self, residualCorrection=True):
         matchingDates = utils.linkingDates(self.highResFolder, self.lowResFolder, days=365)
         if not os.path.exists(self.outputsFolder):
             os.makedirs(self.outputsFolder)
 
-        for row in matchingDates.index:
-            highResDate = matchingDates['highres_closest_date'][row]
-            highResDates = matchingDates['highres_dates'][row].split(", ")
-            lowResDate = matchingDates['lowres_closest_date'][row]
+        for n in matchingDates.index:
+            highResDate = matchingDates['highres_closest_date'][n]
+            highResDates = matchingDates['highres_dates'][n].split(", ")
+            lowResDate = matchingDates['lowres_closest_date'][n]
 
             params = {
-                'windowExtents': self.windowExtents,
+                'regs': self.reg[n],
+                'windowExtents': self.windowExtents[n],
                 '_calculateResidual': residualCorrection,
                 'disaggregatingVariable': self.disaggregatingVariable,
                 'lowResGoodQualityFlags': self.lowResGoodQualityFlags,
-                'Scaler':                {'HR_scaler': self.HR_scaler,
-                                          'LR_scaler': self.LR_scaler}
+                'HR_Scaler': self.HR_scaler[n],
+                'LR_Scaler': self.LR_scaler[n]
             }
             lowResPath = glob.glob(f'{self.lowResFolder}/{lowResDate}*.tif')[0]
             lowResPathMask = glob.glob(f'{self.lowResMaskFolder}/{lowResDate}*.tif')[0]
@@ -1091,7 +1109,7 @@ class DMSTemporalProcessor:
                 outputFilename = f'{self.outputsFolder}/{highResDateIndividual}_{self.variableName}_output.tif'
                 highResPath = glob.glob(f'{self.highResFolder}/{highResDateIndividual}*.tif')[0]
 
-                outImage = utils.processSceneSharpen(f'{self.modelsFolder}/Folder_{highResDate}_{lowResDate}',highResPath, params)
+                outImage = utils.processSceneSharpen(highResPath, params)
 
                 if highResDateIndividual!=highResDate or residualCorrection is False:
                     outFile = pyDMSUtils.saveImg(outImage.GetRasterBand(1).ReadAsArray(),
