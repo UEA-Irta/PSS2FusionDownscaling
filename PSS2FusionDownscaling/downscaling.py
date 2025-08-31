@@ -976,6 +976,11 @@ class DMSTemporalProcessor:
                 if X.shape[0] != Y.shape[0]:
                     raise ValueError(f"Samples mismatch in window {i}: X {X.shape[0]} vs Y {Y.shape[0]}")
 
+                if X.shape[0]==0:
+                    a=1
+
+
+
                 if sample_w is None:
                     sample_w_used = None
                 else:
@@ -1047,6 +1052,8 @@ class DMSTemporalProcessor:
                     LR_scaler = preprocessing.StandardScaler()
                     LR = LR_scaler.fit_transform(Y.reshape(-1, 1)).ravel()
                     local = True if len(windows) > 1 else False
+                    if HR.shape[0] < 10:
+                        continue
 
                     if local:
                         self.DTMetrics['max_leaf_nodes'] = 10
