@@ -1001,6 +1001,8 @@ class DMSTemporalProcessor:
                     HR = HR_scaler.fit_transform(X)
                     LR_scaler = preprocessing.StandardScaler()
                     LR = LR_scaler.fit_transform(Y.reshape(-1, 1)).ravel()
+                    if HR.shape[0] < 10:
+                        continue
 
                     folder_name = os.getcwd()
 
