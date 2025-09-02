@@ -1030,8 +1030,6 @@ class DMSTemporalProcessor:
                     processorRF = RFProcessor(f'dataset_VIS', RF_params, predict_config=None)
                     modelRF = processorRF.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, importance=True, features=list(range(X_train.shape[1])), target=self.variableName)
                     processorRF.test(X_test=X_test, y_test=y_test, model=modelRF)
-                    os.chdir(folder_name)
-
 
                     NN_params = {
                         'depth': int(self.depth),
