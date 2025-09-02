@@ -1025,12 +1025,13 @@ class DMSTemporalProcessor:
                     y_train = y_train.ravel()
                     y_val = y_val.ravel()
                     y_test = y_test.ravel()
+                    os.chdir(self.outputsFolder)
+
                     processorRF = RFProcessor(f'dataset_VIS', RF_params, predict_config=None)
                     modelRF = processorRF.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, importance=True, features=list(range(X_train.shape[1])), target=self.variableName)
                     processorRF.test(X_test=X_test, y_test=y_test, model=modelRF)
                     os.chdir(folder_name)
 
-                    os.chdir(self.outputsFolder)
 
                     NN_params = {
                         'depth': int(self.depth),
@@ -1045,6 +1046,8 @@ class DMSTemporalProcessor:
                     processorNN.test(X_test=X_test, y_test=y_test, model=reg)
 
                     shutil.rmtree(f'{self.outputsFolder}/TrialNN')
+                    shutil.rmtree(f'{self.outputsFolder}/dataset_VIS')
+
 
                     os.chdir(folder_name)
 
