@@ -1038,6 +1038,8 @@ class DMSTemporalProcessor:
                         'optimizer': self.trainingFunction,
                         'epochs': int(self.epochs)
                     }
+                    os.chdir(self.outputsFolder)
+
 
                     processorNN = NNProcessor(f'TrialNN', NN_params, predict_config=None)
                     reg = processorNN.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, print=True)
